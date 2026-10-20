@@ -173,6 +173,14 @@
     padding: 8px 12px; font-size: 15px; font-weight: 600; flex: none;
   }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+  .team-item { padding: 10px 10px 10px 14px; }
+  .team-item .l1 { flex: 1; min-width: 0; word-break: break-word; }
+  .team-actions { display: flex; gap: 6px; flex: none; }
+  .ib {
+    width: 40px; height: 40px; border: 0; border-radius: 10px; background: #f0ece6;
+    font-size: 18px; line-height: 1; flex: none;
+  }
+  .ib:disabled { opacity: .3; }
 
   .seg { display: flex; background: #e8e3db; border-radius: 12px; padding: 4px; margin-bottom: 12px; }
   .seg button { flex: 1; border: 0; background: transparent; padding: 10px; border-radius: 9px; font-weight: 600; color: var(--muted); }
@@ -548,17 +556,40 @@ function summaryText() {
 /* ---------- Pestaña Equipo ---------- */
 function renderEquipo() {
   return `<h2>Equipo</h2>
-    <p class="hint">Las personas que aparecen al anotar las horas. Quitar a alguien no cambia los días ya guardados.</p>
+    <p class="hint">Las personas aparecen en este orden al anotar las horas. Usa ↑ ↓ para moverlas y ✎ para corregir un nombre. Quitar a alguien no cambia los días ya guardados.</p>
     <div class="card"><div class="add-row"><input id="teamName" placeholder="Nombre" autocomplete="off"><button class="btn" data-act="tadd">Agregar</button></div></div>
-    ${team.length ? team.map((n, i) => `<div class="list-item"><div class="l1">${esc(n)}</div><button class="x" data-act="tdel" data-i="${i}">Quitar</button></div>`).join('')
+    ${team.length ? team.map((n, i) => `<div class="list-item team-item"><div class="l1">${esc(n)}</div>
+        <div class="team-actions">
+          <button class="ib" data-act="tup" data-i="${i}" aria-label="Subir a ${esc(n)}" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="ib" data-act="tdown" data-i="${i}" aria-label="Bajar a ${esc(n)}" ${i === team.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="ib" data-act="tren" data-i="${i}" aria-label="Cambiar nombre de ${esc(n)}">✎</button>
+          <button class="ib x" data-act="tdel" data-i="${i}" aria-label="Quitar a ${esc(n)}">✕</button>
+        </div></div>`).join('')
       : `<div class="empty">Todavía no hay personas.</div>`}`;
 }
 
+const cleanName = raw => raw.trim().replace(/\s+/g, ' ');
 function addPerson(raw) {
-  const name = raw.trim().replace(/\s+/g, ' ');
+  const name = cleanName(raw);
   if (!name) return false;
   if (team.some(n => n.toLowerCase() === name.toLowerCase())) { toast('Esa persona ya está'); return false; }
   team.push(name); saveTeam(); return true;
+}
+// Corrige el nombre en el equipo, en el día en curso y en el historial.
+function renamePerson(i, raw) {
+  const old = team[i], name = cleanName(raw || '');
+  if (!name || name === old) return false;
+  if (team.some((n, j) => j !== i && n.toLowerCase() === name.toLowerCase())) { toast('Ya hay alguien con ese nombre'); return false; }
+  const move = hours => {
+    if (!hours[old]) return;
+    const h = hours[old], prev = hours[name];
+    hours[name] = prev ? { am: (prev.am || 0) + (h.am || 0), pm: (prev.pm || 0) + (h.pm || 0) } : h;
+    delete hours[old];
+  };
+  team[i] = name; saveTeam();
+  move(S.day.hours); saveDraft();
+  Object.values(history).forEach(d => move(d.hours)); saveHistory();
+  return true;
 }
 
 /* ---------- Render y eventos ---------- */
@@ -626,6 +657,20 @@ document.getElementById('app').addEventListener('click', e => {
     case 'tadd': {
       const inp = document.getElementById('teamName');
       if (addPerson(inp.value)) { render(); document.getElementById('teamName').focus(); }
+      break;
+    }
+    case 'tup': case 'tdown': {
+      const i = +b.dataset.i, j = act === 'tup' ? i - 1 : i + 1;
+      if (j < 0 || j >= team.length) break;
+      [team[i], team[j]] = [team[j], team[i]]; saveTeam(); render();
+      const btn = document.querySelector(`[data-act="${act}"][data-i="${j}"]`);
+      if (btn && !btn.disabled) btn.focus();
+      break;
+    }
+    case 'tren': {
+      const i = +b.dataset.i;
+      const name = prompt('Nombre correcto de ' + team[i] + ':', team[i]);
+      if (name !== null && renamePerson(i, name)) { render(); toast('Nombre corregido'); }
       break;
     }
     case 'tdel': {
