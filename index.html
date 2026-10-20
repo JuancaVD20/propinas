@@ -189,6 +189,10 @@
     padding: 8px 12px; font-size: 15px; font-weight: 600; flex: none;
   }
   .empty { text-align: center; color: var(--muted); padding: 30px 10px; }
+  .sync { font-size: 14px; margin: -4px 0 12px; }
+  .sync.ok { color: var(--leaf); }
+  .sync.pend { color: var(--warn); }
+  .sync.busy, .sync.off { color: var(--muted); }
   .team-item { padding: 10px 10px 10px 14px; }
   .team-item .l1 { flex: 1; min-width: 0; word-break: break-word; }
   .team-actions { display: flex; gap: 6px; flex: none; }
@@ -297,8 +301,8 @@ const S = { tab: 'dia', step: 1, day: newDay(), detail: null, sum: { mode: 'sema
   S.step = d.step; S.day = d.day;
 })();
 const saveDraft = () => LS.set('prop_draft', { step: S.step, day: S.day });
-const saveTeam = () => LS.set('prop_people', team);
-const saveHistory = () => LS.set('prop_history', history);
+const saveTeam = () => { LS.set('prop_people', team); markDirty(); };
+const saveHistory = () => { LS.set('prop_history', history); markDirty(); };
 
 function dayNames() {
   const extra = Object.keys(S.day.hours).filter(n => !team.includes(n));
@@ -447,6 +451,7 @@ function renderDia() {
   // Paso 4
   return stepsHTML(4) + `
     <div class="note">✓ Día guardado. Puedes sacarle una captura de pantalla o enviarlo por WhatsApp.</div>
+    ${cloud ? '<div data-sync class="sync"></div>' : ''}
     ${sheetHTML(d)}
     <div class="stack">
       <button class="btn" data-act="share">Enviar a la jefa (pagos)</button>
@@ -586,7 +591,13 @@ function renderEquipo() {
           <button class="ib" data-act="tren" data-i="${i}" aria-label="Cambiar nombre de ${esc(n)}">✎</button>
           <button class="ib x" data-act="tdel" data-i="${i}" aria-label="Quitar a ${esc(n)}">✕</button>
         </div></div>`).join('')
-      : `<div class="empty">Todavía no hay personas.</div>`}`;
+      : `<div class="empty">Todavía no hay personas.</div>`}
+    <div class="card" style="margin-top:24px">
+      <div style="font-weight:700;margin-bottom:6px">Respaldo en la nube</div>
+      <div data-sync class="sync" style="margin:0"></div>
+      ${cloud ? `<div class="row" style="margin-top:12px"><button class="btn sec" data-act="cpush">Respaldar ahora</button><button class="btn sec" data-act="cpull">Recuperar</button></div>`
+        : `<p class="hint" style="margin:6px 0 0">Para activarlo, abre en este teléfono el link de conexión que te enviaron.</p>`}
+    </div>`;
 }
 
 const cleanName = raw => raw.trim().replace(/\s+/g, ' ');
@@ -613,12 +624,98 @@ function renamePerson(i, raw) {
   return true;
 }
 
+/* ---------- Respaldo en Google Sheets ----------
+   Cada cambio sube todo el historial a la planilla (respaldo/Codigo.gs).
+   sync.ver cuenta los cambios y sync.done el último respaldado; si no hay
+   internet queda pendiente y se reintenta solo. */
+let cloud = LS.get('prop_cloud', null); // {url, key}
+const sync = LS.get('prop_sync', { ver: 0, done: 0, last: null, error: null });
+let syncing = false, syncTimer;
+const saveSync = () => LS.set('prop_sync', sync);
+function markDirty() { sync.ver++; saveSync(); scheduleSync(); }
+function scheduleSync(delay = 1500) {
+  if (!cloud) return;
+  clearTimeout(syncTimer); syncTimer = setTimeout(syncNow, delay);
+}
+async function callCloud(payload) {
+  const r = await fetch(cloud.url, {
+    method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    body: JSON.stringify(Object.assign({ key: cloud.key }, payload))
+  });
+  const j = await r.json();
+  if (!j.ok) throw new Error(j.error || 'Error del respaldo');
+  return j;
+}
+const cloudPayload = () => ({
+  action: 'guardar', team,
+  days: Object.values(history).map(d => ({ date: d.date, tipAM: d.tipAM || 0, tipPM: d.tipPM || 0, rows: compute(d).rows }))
+});
+async function syncNow() {
+  if (!cloud || syncing || sync.done >= sync.ver) return;
+  syncing = true; const ver = sync.ver; refreshSyncUI();
+  try {
+    await callCloud(cloudPayload());
+    sync.done = Math.max(sync.done, ver); sync.last = Date.now(); sync.error = null;
+  } catch (e) {
+    sync.error = navigator.onLine === false || e instanceof TypeError ? 'sin conexión' : String(e.message || e);
+  }
+  syncing = false; saveSync(); refreshSyncUI();
+  if (sync.done < sync.ver) scheduleSync(sync.error ? 60000 : 500);
+}
+// Junta lo de la nube con lo del teléfono; si un día está en ambos, gana el del teléfono.
+function mergeFromCloud(data) {
+  const before = Object.keys(history).length;
+  for (const [d, day] of Object.entries(data.history || {})) if (!history[d]) history[d] = day;
+  for (const n of data.team || []) if (!team.includes(n)) team.push(n);
+  saveHistory(); saveTeam();
+  return Object.keys(history).length - before;
+}
+function fmtWhen(t) {
+  const d = new Date(t), hm = pad(d.getHours()) + ':' + pad(d.getMinutes());
+  return toISO(d) === todayISO() ? 'hoy a las ' + hm : 'el ' + d.getDate() + '/' + pad(d.getMonth() + 1) + ' a las ' + hm;
+}
+function syncStatus() {
+  if (!cloud) return ['off', 'Sin respaldo en la nube'];
+  if (syncing) return ['busy', 'Respaldando…'];
+  if (sync.done < sync.ver) return ['pend', 'Pendiente de respaldar' + (sync.error ? ' (' + sync.error + ')' : '') + '. Se reintenta solo.'];
+  return ['ok', sync.last ? 'Respaldado ' + fmtWhen(sync.last) : 'Respaldado'];
+}
+function refreshSyncUI() {
+  const [cls, text] = syncStatus();
+  document.querySelectorAll('[data-sync]').forEach(el => { el.className = 'sync ' + cls; el.textContent = '☁ ' + text; });
+}
+async function connectFromHash() {
+  const m = location.hash.match(/^#conectar=(.+)$/);
+  if (!m) return;
+  window.history.replaceState(null, '', location.pathname + location.search);
+  let url, key;
+  try { [url, key] = decodeURIComponent(m[1]).split('|'); } catch (e) {}
+  if (!url || !key || !/^https:\/\/script\.google\.com\//.test(url)) { alert('El link de conexión no es válido.'); return; }
+  const prev = cloud;
+  cloud = { url, key };
+  toast('Conectando al respaldo…');
+  try {
+    const data = await callCloud({ action: 'leer' });
+    LS.set('prop_cloud', cloud);
+    const added = mergeFromCloud(data);
+    render();
+    toast(added ? `Conectado. Se recuperaron ${added} días.` : 'Conectado al respaldo');
+  } catch (e) {
+    cloud = prev;
+    alert('No se pudo conectar al respaldo: ' + (e.message || e));
+  }
+}
+window.addEventListener('online', () => scheduleSync(0));
+window.addEventListener('hashchange', connectFromHash);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') scheduleSync(0); });
+
 /* ---------- Render y eventos ---------- */
 function render() {
   document.querySelectorAll('#tabs button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
   const app = document.getElementById('app');
   app.innerHTML = S.tab === 'dia' ? renderDia() : S.tab === 'historial' ? renderHistorial() : S.tab === 'resumen' ? renderResumen() : renderEquipo();
   if (S.tab === 'dia' && S.step === 3) updateStep3();
+  refreshSyncUI();
 }
 
 document.getElementById('tabs').addEventListener('click', e => {
@@ -680,6 +777,15 @@ document.getElementById('app').addEventListener('click', e => {
       if (addPerson(inp.value)) { render(); document.getElementById('teamName').focus(); }
       break;
     }
+    case 'cpush': sync.ver++; saveSync(); clearTimeout(syncTimer); syncNow(); break;
+    case 'cpull':
+      if (confirm('Se traerán a este teléfono los días guardados en la nube. Lo que ya está en este teléfono se mantiene.')) {
+        toast('Recuperando…');
+        callCloud({ action: 'leer' })
+          .then(data => { const n = mergeFromCloud(data); render(); toast(n ? `Se recuperaron ${n} días` : 'Este teléfono ya tenía todo'); })
+          .catch(e => alert('No se pudo recuperar: ' + (e.message || e)));
+      }
+      break;
     case 'tup': case 'tdown': {
       const i = +b.dataset.i, j = act === 'tup' ? i - 1 : i + 1;
       if (j < 0 || j >= team.length) break;
@@ -744,6 +850,8 @@ document.getElementById('app').addEventListener('keydown', e => {
 });
 
 render();
+connectFromHash();
+scheduleSync(0);
 </script>
 </body>
 </html>
