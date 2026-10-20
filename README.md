@@ -84,15 +84,17 @@ Todo se guarda en `localStorage` del navegador:
 
 Forma de un día: `{date, tipAM, tipPM, hours: {Nombre: {am, pm}}}`. El borrador agrega `orig` (la fecha original cuando se corrige un día).
 
-Además se guardan `prop_cloud` (URL y clave del respaldo) y `prop_sync` (contador de cambios respaldados).
+Además se guardan `prop_cloud` (URL y clave), `prop_sync` (contador de cambios sincronizados), `prop_deleted` (fecha → hora de borrado) y `prop_team_updated`. Cada día guardado lleva `updated` (hora de su última modificación, al segundo).
 
-### Respaldo en Google Sheets (desde 2026-10-19)
+### Sincronización con Google Sheets (desde 2026-10-19)
 
-- Cada cambio (guardar o borrar un día, cambios del equipo) sube **todo** el historial a una planilla de Google de quien desarrolla la app, mediante un Apps Script publicado como aplicación web. Código: `respaldo/Codigo.gs`.
-- La planilla tiene tres hojas: **Días**, **Detalle** (persona por día) y **Equipo**. "Recuperar" lee esas hojas, así que una corrección hecha a mano en la planilla también se recupera.
-- Sin internet, el respaldo queda pendiente y se reintenta solo. El estado se ve en la pestaña Equipo y en el consolidado.
-- El teléfono se conecta abriendo una vez un **link de conexión** (`#conectar=<url>|<clave>`). Al conectar se juntan los datos del teléfono con los de la nube; si un día está en ambos, gana el del teléfono.
-- La clave y el link real están solo en `respaldo/Codigo-con-clave.gs` y `respaldo/link-conexion.txt`, que **no se suben al repo** (`.gitignore`). Si cambia el código del script, hay que pegarlo de nuevo en Apps Script y usar **Implementar → Administrar implementaciones → editar → Nueva versión**, para que la URL no cambie.
+- Varios teléfonos (por ejemplo mamá y papá) pueden anotar y corregir días. Se conectan abriendo una vez el **link de conexión** (`#conectar=<url>|<clave>`).
+- Cada sincronización manda todo el estado y recibe la unión. Regla: **por fecha gana lo más reciente** entre el día (`updated`) y su borrado (`prop_deleted`); el equipo completo (orden y nombres) gana el más reciente (`prop_team_updated`). La misma regla está en `mergeState` (app) y `unir` (`respaldo/Codigo.gs`).
+- Se sincroniza al guardar o borrar, al abrir la app y al volver a ella. Sin internet queda pendiente y se reintenta solo.
+- Hojas: **Días** (con columna *Actualizado*), **Detalle** y **Equipo**, más dos ocultas: **Borrados** y **Sistema**. El script recalcula los montos con la misma regla de reparto que la app. Para que una corrección hecha a mano en la planilla gane sobre los teléfonos, hay que cambiar también su *Actualizado* a la hora actual.
+- Límite conocido: si dos personas agregan a alguien al equipo casi al mismo tiempo, queda la lista del último que guardó.
+- La clave y el link real están solo en `respaldo/Codigo-con-clave.gs` y `respaldo/link-conexion.txt`, que **no se suben al repo**. Si cambia el script, hay que pegarlo de nuevo en Apps Script y usar **Implementar → Administrar implementaciones → editar → Nueva versión**, para que la URL no cambie.
+- En la hoja oculta Borrados queda una marca de la fecha 2000-01-01, que viene de una prueba.
 
 ## 8. Próximos pasos
 
