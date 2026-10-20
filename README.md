@@ -84,14 +84,21 @@ Todo se guarda en `localStorage` del navegador:
 
 Forma de un día: `{date, tipAM, tipPM, hours: {Nombre: {am, pm}}}`. El borrador agrega `orig` (la fecha original cuando se corrige un día).
 
-Limitación: los datos viven en un solo teléfono y navegador. Si se borran los datos del navegador, se pierden. Más adelante se puede agregar exportar/importar o respaldo en la nube.
+Además se guardan `prop_cloud` (URL y clave del respaldo) y `prop_sync` (contador de cambios respaldados).
+
+### Respaldo en Google Sheets (desde 2026-10-19)
+
+- Cada cambio (guardar o borrar un día, cambios del equipo) sube **todo** el historial a una planilla de Google de Juan Carlos, mediante un Apps Script publicado como aplicación web. Código: `respaldo/Codigo.gs`.
+- La planilla tiene tres hojas: **Días**, **Detalle** (persona por día) y **Equipo**. "Recuperar" lee esas hojas, así que una corrección hecha a mano en la planilla también se recupera.
+- Sin internet, el respaldo queda pendiente y se reintenta solo. El estado se ve en la pestaña Equipo y en el consolidado.
+- El teléfono se conecta abriendo una vez un **link de conexión** (`#conectar=<url>|<clave>`). Al conectar se juntan los datos del teléfono con los de la nube; si un día está en ambos, gana el del teléfono.
+- La clave y el link real están solo en `respaldo/Codigo-con-clave.gs` y `respaldo/link-conexion.txt`, que **no se suben al repo** (`.gitignore`). Si cambia el código del script, hay que pegarlo de nuevo en Apps Script y usar **Implementar → Administrar implementaciones → editar → Nueva versión**, para que la URL no cambie.
 
 ## 8. Próximos pasos
 
 1. ~~Publicar~~ Hecho el 2026-10-19: **https://juancavd20.github.io/propinas/** (GitHub Pages, rama `main`). Cada `git push` actualiza el link en 1–2 minutos.
 2. Que la mamá pruebe el link con los datos de un día real y compare con su Excel.
 3. Convertirlo en PWA instalable: agregar `manifest.json`, íconos y `service worker` para uso sin conexión.
-4. Agregar respaldo del historial (exportar/importar o CSV), porque hoy vive en un solo teléfono.
 5. Ajustar el consolidado cuando haya una foto del Excel.
 
 ## 9. Notas para quien continúe el trabajo (humano o Claude)
