@@ -88,7 +88,7 @@ Además se guardan `prop_cloud` (URL y clave del respaldo) y `prop_sync` (contad
 
 ### Respaldo en Google Sheets (desde 2026-10-19)
 
-- Cada cambio (guardar o borrar un día, cambios del equipo) sube **todo** el historial a una planilla de Google de Juan Carlos, mediante un Apps Script publicado como aplicación web. Código: `respaldo/Codigo.gs`.
+- Cada cambio (guardar o borrar un día, cambios del equipo) sube **todo** el historial a una planilla de Google de quien desarrolla la app, mediante un Apps Script publicado como aplicación web. Código: `respaldo/Codigo.gs`.
 - La planilla tiene tres hojas: **Días**, **Detalle** (persona por día) y **Equipo**. "Recuperar" lee esas hojas, así que una corrección hecha a mano en la planilla también se recupera.
 - Sin internet, el respaldo queda pendiente y se reintenta solo. El estado se ve en la pestaña Equipo y en el consolidado.
 - El teléfono se conecta abriendo una vez un **link de conexión** (`#conectar=<url>|<clave>`). Al conectar se juntan los datos del teléfono con los de la nube; si un día está en ambos, gana el del teléfono.
