@@ -261,6 +261,8 @@ function fmtDateShort(iso) {
   return cap(DIAS[d.getDay()]) + ' ' + d.getDate() + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear();
 }
 const sum = a => a.reduce((x, y) => x + y, 0);
+// Orden de los mensajes: mayor monto primero; si empatan, por abecedario.
+const byAmountThenName = (a, b) => b.total - a.total || a.name.localeCompare(b.name, 'es', { sensitivity: 'base' });
 
 /* ---------- Cálculo (funciones puras) ----------
    Cada pozo se reparte proporcional a las horas del turno.
@@ -382,7 +384,7 @@ function dayText(day, detailed = false) {
     `Propina PM: ${clp(day.tipPM || 0)} (${fmtH(c.hPM)} h)`
   );
   lines.push('');
-  for (const r of c.rows) {
+  for (const r of c.rows.slice().sort(byAmountThenName)) {
     if (!detailed) { lines.push(`• ${r.name}: ${clp(r.total)}`); continue; }
     const parts = [];
     if (r.hAM) parts.push(`AM ${fmtH(r.hAM)} h ${clp(r.pAM)}`);
@@ -547,7 +549,7 @@ function aggregate() {
       p.days++; p.h += row.hAM + row.hPM; p.total += row.total;
     }
   }
-  const list = Object.entries(people).sort((x, y) => y[1].total - x[1].total);
+  const list = Object.entries(people).sort((x, y) => byAmountThenName({ name: x[0], total: x[1].total }, { name: y[0], total: y[1].total }));
   return { r, dates, list, tips, paid };
 }
 function renderResumen() {
