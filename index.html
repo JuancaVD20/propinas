@@ -372,15 +372,16 @@ function sheetHTML(day) {
     ${notes.length ? `<div class="round-note">${notes.join('<br>')}</div>` : ''}
   </div>`;
 }
-// detailed = true: versión para el equipo, con horas y monto de cada turno.
+// Jefa: solo el monto por persona. detailed = true: versión para el equipo,
+// con la propina de cada turno y las horas y el monto de cada persona.
 function dayText(day, detailed = false) {
   const c = compute(day);
-  const lines = [
-    `*Propinas ${fmtDateShort(day.date)}*`,
+  const lines = [`*Propinas ${fmtDateShort(day.date)}*`];
+  if (detailed) lines.push(
     `Propina AM: ${clp(day.tipAM || 0)} (${fmtH(c.hAM)} h)`,
-    `Propina PM: ${clp(day.tipPM || 0)} (${fmtH(c.hPM)} h)`,
-    ''
-  ];
+    `Propina PM: ${clp(day.tipPM || 0)} (${fmtH(c.hPM)} h)`
+  );
+  lines.push('');
   for (const r of c.rows) {
     if (!detailed) { lines.push(`• ${r.name}: ${clp(r.total)}`); continue; }
     const parts = [];
@@ -388,7 +389,6 @@ function dayText(day, detailed = false) {
     if (r.hPM) parts.push(`PM ${fmtH(r.hPM)} h ${clp(r.pPM)}`);
     lines.push(`• ${r.name}: *${clp(r.total)}* (${parts.join(' · ')})`);
   }
-  lines.push('', `*Total: ${clp(c.total)}*`);
   return lines.join('\n');
 }
 
