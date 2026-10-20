@@ -348,12 +348,7 @@ function dayText(day) {
     `Propina PM: ${clp(day.tipPM || 0)} (${fmtH(c.hPM)} h)`,
     ''
   ];
-  for (const r of c.rows) {
-    const parts = [];
-    if (r.hAM) parts.push(`AM ${fmtH(r.hAM)} h ${clp(r.pAM)}`);
-    if (r.hPM) parts.push(`PM ${fmtH(r.hPM)} h ${clp(r.pPM)}`);
-    lines.push(`• ${r.name}: *${clp(r.total)}* (${parts.join(' · ')})`);
-  }
+  for (const r of c.rows) lines.push(`• ${r.name}: ${clp(r.total)}`);
   lines.push('', `*Total: ${clp(c.total)}*`);
   return lines.join('\n');
 }
