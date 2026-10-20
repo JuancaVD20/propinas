@@ -340,7 +340,8 @@ function sheetHTML(day) {
     ${notes.length ? `<div class="round-note">${notes.join('<br>')}</div>` : ''}
   </div>`;
 }
-function dayText(day) {
+// detailed = true: versión para el equipo, con horas y monto de cada turno.
+function dayText(day, detailed = false) {
   const c = compute(day);
   const lines = [
     `*Propinas ${fmtDateShort(day.date)}*`,
@@ -348,7 +349,13 @@ function dayText(day) {
     `Propina PM: ${clp(day.tipPM || 0)} (${fmtH(c.hPM)} h)`,
     ''
   ];
-  for (const r of c.rows) lines.push(`• ${r.name}: ${clp(r.total)}`);
+  for (const r of c.rows) {
+    if (!detailed) { lines.push(`• ${r.name}: ${clp(r.total)}`); continue; }
+    const parts = [];
+    if (r.hAM) parts.push(`AM ${fmtH(r.hAM)} h ${clp(r.pAM)}`);
+    if (r.hPM) parts.push(`PM ${fmtH(r.hPM)} h ${clp(r.pPM)}`);
+    lines.push(`• ${r.name}: *${clp(r.total)}* (${parts.join(' · ')})`);
+  }
   lines.push('', `*Total: ${clp(c.total)}*`);
   return lines.join('\n');
 }
@@ -414,7 +421,8 @@ function renderDia() {
     <div class="note">✓ Día guardado. Puedes sacarle una captura de pantalla o enviarlo por WhatsApp.</div>
     ${sheetHTML(d)}
     <div class="stack">
-      <button class="btn" data-act="share">Enviar por WhatsApp</button>
+      <button class="btn" data-act="share">Enviar a la jefa (pagos)</button>
+      <button class="btn sec" data-act="shareteam">Enviar detalle al equipo</button>
       <div class="row"><button class="btn sec" data-act="copy">Copiar texto</button><button class="btn sec" data-act="edit">Corregir</button></div>
       <button class="btn ghost" data-act="newday">Empezar un día nuevo</button>
     </div>`;
@@ -463,7 +471,8 @@ function renderHistorial() {
     return `<button class="btn ghost" data-act="hback" style="text-align:left;padding-left:0">← Volver al historial</button>
       ${sheetHTML(day)}
       <div class="stack">
-        <button class="btn" data-act="hshare">Enviar por WhatsApp</button>
+        <button class="btn" data-act="hshare">Enviar a la jefa (pagos)</button>
+        <button class="btn sec" data-act="hshareteam">Enviar detalle al equipo</button>
         <div class="row"><button class="btn sec" data-act="hcopy">Copiar texto</button><button class="btn sec" data-act="hedit">Corregir</button></div>
         <button class="btn danger" data-act="hdel">Borrar este día</button>
       </div>`;
@@ -589,12 +598,14 @@ document.getElementById('app').addEventListener('click', e => {
       break;
     }
     case 'share': shareText(dayText(cleanDay(S.day))); break;
+    case 'shareteam': shareText(dayText(cleanDay(S.day), true)); break;
     case 'copy': copyText(dayText(cleanDay(S.day))); break;
     case 'edit': S.step = 2; saveDraft(); render(); window.scrollTo(0, 0); break;
     case 'newday': startDay(todayISO()); render(); window.scrollTo(0, 0); break;
     case 'hopen': S.detail = b.dataset.date; render(); window.scrollTo(0, 0); break;
     case 'hback': S.detail = null; render(); break;
     case 'hshare': shareText(dayText(history[S.detail])); break;
+    case 'hshareteam': shareText(dayText(history[S.detail], true)); break;
     case 'hcopy': copyText(dayText(history[S.detail])); break;
     case 'hedit': loadForEdit(S.detail); S.detail = null; S.tab = 'dia'; render(); window.scrollTo(0, 0); break;
     case 'hdel':
