@@ -29,7 +29,7 @@ La mamá de quien desarrolla esto trabaja en un café y se encarga de repartir l
   `pago de una persona en un turno = propina del turno ÷ horas totales del turno × horas de la persona`
 - Todas las horas valen lo mismo, sin importar el cargo.
 - Le informan **la propina AM y la propina PM por separado**.
-- **Redondeo al peso:** si el monto termina en ,5 o más se sube; si es menor, se baja. Cada monto por turno se redondea por separado y el total de la persona es la suma de ambos. Por eso lo repartido puede diferir en unos pocos pesos de la propina; el consolidado muestra esa diferencia cuando ocurre.
+- **Redondeo al peso:** si el monto termina en ,5 o más se sube; si es menor, se baja. Cada monto por turno se redondea por separado y el total de la persona es la suma de ambos. Por eso lo repartido puede diferir en unos pocos pesos de la propina; el consolidado muestra esa diferencia cuando ocurre. **Decidido (2026-10-19): se mantiene así**, la diferencia de $1 no importa; no cambiar a un reparto que fuerce la suma exacta.
 - Una persona puede trabajar AM y PM el mismo día.
 - Las horas se ingresan con botones de 0,5 h o escribiéndolas (se aceptan cuartos de hora).
 - El equipo cambia: se pueden agregar y quitar personas en cualquier momento.
@@ -40,7 +40,6 @@ La mamá de quien desarrolla esto trabaja en un café y se encarga de repartir l
 
 - [ ] Que la mamá pruebe con un día real y compare con su Excel.
 - [ ] Foto o captura del Excel actual (con nombres tapados) para parecerse a lo que conoce la jefa.
-- [ ] ¿La jefa está conforme con la diferencia de pocos pesos que puede dejar el redondeo?
 - [ ] Privacidad: los nombres del equipo se guardan solo en el teléfono de ella (estado actual).
 
 ## 5. Decisión técnica
