@@ -89,7 +89,7 @@ Limitación: los datos viven en un solo teléfono y navegador. Si se borran los 
 
 ## 8. Próximos pasos
 
-1. Publicar en un hosting gratuito (GitHub Pages, Netlify o similar) para tener un link.
+1. ~~Publicar~~ Hecho el 2026-10-19: **https://juancavd20.github.io/propinas/** (GitHub Pages, rama `main`). Cada `git push` actualiza el link en 1–2 minutos.
 2. Que la mamá pruebe el link con los datos de un día real y compare con su Excel.
 3. Convertirlo en PWA instalable: agregar `manifest.json`, íconos y `service worker` para uso sin conexión.
 4. Agregar respaldo del historial (exportar/importar o CSV), porque hoy vive en un solo teléfono.
