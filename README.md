@@ -99,5 +99,6 @@ Limitación: los datos viven en un solo teléfono y navegador. Si se borran los 
 - Idioma de la interfaz: **español de Chile**. Montos en pesos chilenos con separador de miles `.` (ejemplo: `$12.500`).
 - La interfaz debe ser muy simple: una pregunta por pantalla, botones grandes, pensada para una persona sin experiencia técnica.
 - Mantener el cálculo en funciones puras (`splitPool`, `compute`) para poder probarlas fuera del navegador.
-- No introducir dependencias externas salvo que sea necesario; el archivo debe seguir funcionando abierto directamente.
+- No introducir dependencias externas salvo que sea necesario. Única excepción: las fuentes Marcellus y Open Sans de Google Fonts (si no hay internet se usan las del sistema).
+- Estilo de La Florería Café (https://www.lafloreriacafe.cl/): encabezado rosado #efa6b9, botones fucsia, logo e ícono en `img/` tomados de su sitio.
 - Cualquier cambio en la regla de reparto debe actualizarse también en la sección 3 de este archivo.
